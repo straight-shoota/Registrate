@@ -27,7 +27,7 @@ extends Registrate_Db_Sql {
 
 	protected function sql_get($sql, $table, $cols, Condition $where) {
 		global $wpdb;
-		return $wpdb->get_row(sprintf($this->sql['get'], $cols, $table, $where), ARRAY_A);
+		return $wpdb->get_row($this->_sql('get', array('cols' => $cols, 'table' => $table, 'where' => $where)), ARRAY_A);
 	}
 
 	public function updateItem(array $form, $id, array $values) {
@@ -60,20 +60,22 @@ extends Registrate_Db_Sql {
 		}else{
 			$limit = '';
 		}
-		$query->sql = sprintf($this->sql['list'],
-			$this->_cols(registrate_form_cols($form)),
-			$this->_table($form['name']),
-			$conditions,
-			$limit
-		);
+		$query->sql = $this->sql('list', array(
+				'cols'			=> $this->_cols(registrate_form_cols($form)),
+				'table'			=> $this->_table($form['name']),
+				'conditions' 	=> $conditions,
+				'limit'			=> $limit
+		));
 		return $wpdb->get_results($query->sql, ARRAY_A);
 	}
 	protected function _countItems($table, Condition $where) {
 		global $wpdb;
-		return $wpdb->get_var(sprintf($this->sql['count'],
-					$this->_table($table),
-					$where
-			));
+		return $wpdb->get_var(
+				$this->sql('count', array(
+					'table' => $this->_table($table),
+					'where' => $where
+				))
+			);
 	}
 	protected function _getStats($sql, $type, array $form, array $event) {
 		global $wpdb;

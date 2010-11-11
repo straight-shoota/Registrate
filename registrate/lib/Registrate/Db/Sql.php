@@ -3,19 +3,19 @@ require_once dirname(__FILE__) . '/../Db.php';
 abstract class Registrate_Db_Sql
 extends Registrate_Db {
 	protected $sql = array(
-		'list'	 	=> 'SELECT %s
-						FROM `%s`
-						%s
-						%s',
-		'get'		=> 'SELECT %s FROM `%s` WHERE %s LIMIT 1',
-		'update'	=> 'UPDATE `%s` SET %s WHERE %s LIMIT 1',
-		'count'		=> 'SELECT COUNT(*) FROM `%s` WHERE %s',
+		'list'	 	=> 'SELECT !cols
+						FROM `!table`
+						!where
+						!order',
+		'get'		=> 'SELECT !cols FROM `!table` WHERE !where LIMIT 1',
+		'update'	=> 'UPDATE `!table` SET !values WHERE !where LIMIT 1',
+		'count'		=> 'SELECT COUNT(*) FROM `!table` WHERE !where',
 		'get_log'	=> 'SELECT `log`.`id`, `log`.`form`, `log`.`event`, `log`.`item`, `log`.`message`, `log`.`data`, `log`.`timestamp`, `e`.`name` AS `event_name`, `e`.`description` AS `event_description`, `u`.`user_nicename` AS `username`
-				FROM `%s` AS `log`
-				LEFT JOIN `%s` AS `e` ON `e`.`id` = `event`
-				LEFT JOIN `%s` AS `u` ON `u`.`ID` = `user`
-				WHERE %s ORDER BY `timestamp` DESC LIMIT 30',
-		'log_messages'	=> 'SELECT `message` FROM `%s` GROUP BY `message`',
+				FROM `!table` AS `log`
+				LEFT JOIN `!table_event` AS `e` ON `e`.`id` = `event`
+				LEFT JOIN `!table_user` AS `u` ON `u`.`ID` = `user`
+				WHERE !where ORDER BY `timestamp` DESC LIMIT 30',
+		'log_messages'	=> 'SELECT `message` FROM `!table` GROUP BY `message`',
 	);
 	
 	protected $stats = array(
@@ -26,15 +26,24 @@ extends Registrate_Db {
 		'towns'	=> 'SELECT `town`, `zipcode`, COUNT(`id`) AS `count` FROM `%s` WHERE %s GROUP BY `town` ORDER BY `town`',
 	);
 
-	protected function sql($sql){
-		$name = 'sql_' . $sql;
-		if(method_exists($this, $name)) {
-			$args = func_get_args();
-			$sql = array_shift($args);
-			array_unshift($args, $this->sql[$sql]);
-			return call_user_func_array(array($this, $name), $args);
+	protected function sql($sql, $vars = null){
+		if(is_array($vars)) {
+			foreach($vars as $k => $v){
+				$k2 = '!' . $k;
+				unset($vars[$k]);
+				$vars[$k2] = $v;
+			}
+			return strtr($this->sql[$key], $vars);
+		}else{
+			$name = 'sql_' . $sql;
+			if(method_exists($this, $name)) {
+				$args = func_get_args();
+				$sql = array_shift($args);
+				array_unshift($args, $this->sql[$sql]);
+				return call_user_func_array(array($this, $name), $args);
+			}
+			throw new Exception("SQL Query for $sql operation should be handled by a method <tt>" . get_class($this) . "::sql_$sql</tt>");
 		}
-		throw new Exception("SQL Query for $sql operation should be handled by a method <tt>" . get_class($this) . "::sql_$sql</tt>");
 	}
 	
 	/* Query Implementations */
